@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF para HTML Vivo — OlacDev</title>
   <meta name="description" content="Converta documentos e PDFs em HTML5 semântico WCAG 2.2 AA e eMAG em lote, 100% client-side, sem upload e com relatório certificável." />
+  <meta property="og:title" content="PDF para HTML Vivo — Conversor WCAG 2.2 AA e eMAG" />
+  <meta property="og:description" content="Processe múltiplos documentos em lote e gere HTML5 semântico e relatórios WCAG 2.2 AA / eMAG 100% no navegador." />
+  <meta property="og:type" content="website" />
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
     :root { --bg: #f8fafc; --card: #fff; --text: #0f172a; --muted: #475569; --primary: #0f766e; --border: #cbd5e1; }
@@ -48,6 +51,7 @@
       <label for="batch-files">Selecionar múltiplos arquivos (.txt, .md)</label>
       <input id="batch-files" type="file" multiple accept=".txt,.md,text/plain,text/markdown" />
       <p id="batch-status" aria-live="polite">0 documento(s) na fila do lote.</p>
+      <ul id="batch-list" style="list-style:none;padding:0;margin:8px 0;"></ul>
       <div class="row">
         <button id="exp-html" type="button" class="secondary">Exportar Relatório .html</button>
         <button id="exp-json" type="button" class="secondary">Exportar Relatório .json</button>
@@ -58,29 +62,55 @@
     <section id="out" aria-live="polite"></section>
 
     <section class="card" aria-labelledby="plans-title">
-      <h2 id="plans-title">Planos B2B (Lista de Espera — Sem Cobrança Ativa)</h2>
-      <p>O núcleo individual é gratuito e 100% local. Os planos institucionais abaixo estão em pré-cadastro (sem pagamento ativo nesta versão).</p>
+      <h2 id="plans-title">Planos B2B / Institucionais (Sem Cobrança Ativa)</h2>
+      <p>O núcleo individual é gratuito e 100% local. Os planos institucionais abaixo estão em lista de espera (sem checkout ou cobrança ativa).</p>
       <div class="plans">
+        <article class="plan">
+          <h3>Gratuito Local</h3>
+          <p class="price">R$ 0/mês</p>
+          <p>Conversão local no navegador, sem cadastro, sem upload e com auditoria WCAG básica.</p>
+        </article>
         <article class="plan">
           <h3>Pro</h3>
           <p class="price">R$ 119–149/mês</p>
           <p>Processamento em lote avançado e relatórios auditáveis WCAG 2.2 AA / eMAG para consultores e equipes.</p>
+          <a href="mailto:contato@olacdev.com?subject=Lista%20de%20Espera%20Pro%20-%20PDF%20para%20HTML">Entrar na lista de espera</a>
         </article>
         <article class="plan">
           <h3>Institucional</h3>
           <p class="price">R$ 349–399/mês</p>
           <p>Licenciamento para universidades, prefeituras e órgãos públicos com modelos eMAG padronizados.</p>
+          <a href="mailto:contato@olacdev.com?subject=Lista%20de%20Espera%20Institucional%20-%20PDF%20para%20HTML">Solicitar contato institucional</a>
         </article>
       </div>
     </section>
   </main>
   <footer>Made by <a href="https://olacdev.com/" target="_blank" rel="noopener noreferrer">OlacDev</a></footer>
   <script type="module">
-    import { convertTextToSemanticHtml, buildComplianceReport } from './app.js';
+    import { convertTextToSemanticHtml, auditDocumentWcagEmag, buildComplianceReport } from './app.js';
     const batchItems = [];
 
     function updateBatchStatus() {
       document.getElementById('batch-status').textContent = `${batchItems.length} documento(s) na fila do lote.`;
+      const list = document.getElementById('batch-list');
+      list.textContent = '';
+      batchItems.forEach((item, idx) => {
+        const audit = auditDocumentWcagEmag(item);
+        const li = document.createElement('li');
+        li.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #cbd5e1;';
+        const span = document.createElement('span');
+        span.textContent = `${idx + 1}. ${audit.title} — ${audit.score}% WCAG/eMAG`;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'secondary';
+        btn.textContent = 'Baixar HTML5';
+        btn.addEventListener('click', () => {
+          downloadFile(`${audit.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'doc'}.html`, audit.html, 'text/html;charset=utf-8');
+        });
+        li.appendChild(span);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
     }
 
     function downloadFile(name, content, type) {
