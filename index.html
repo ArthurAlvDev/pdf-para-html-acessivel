@@ -4,14 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF para HTML Vivo — OlacDev</title>
+  <meta name="description" content="Converta documentos e PDFs em HTML5 semântico WCAG 2.2 AA e eMAG em lote, 100% client-side, sem upload e com relatório certificável." />
+  <script defer src="/_vercel/insights/script.js"></script>
   <style>
     :root { --bg: #f8fafc; --card: #fff; --text: #0f172a; --muted: #475569; --primary: #0f766e; --border: #cbd5e1; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-    main { max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; }
-    textarea { width: 100%; min-height: 140px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; margin-bottom: 12px; }
-    button { background: var(--primary); color: #fff; border: 0; padding: 12px 18px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    main { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
+    textarea, input[type="text"], input[type="file"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; margin-bottom: 12px; background: #fff; }
+    textarea { min-height: 140px; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    button { background: var(--primary); color: #fff; border: 0; padding: 12px 18px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; min-height: 44px; }
+    button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 16px; }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+    .plan { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: #f8fafc; }
+    .price { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin: 4px 0 8px; }
     footer { text-align: center; padding: 24px 16px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--border); }
     footer a { color: var(--primary); font-weight: 600; text-decoration: none; }
   </style>
@@ -19,20 +27,119 @@
 <body>
   <main>
     <h1>PDF para HTML Vivo (WCAG 2.2 AA)</h1>
-    <p>Cole o texto extraído de um PDF para gerar HTML5 semântico acessível para leitores de tela.</p>
+    <p>Cole o texto extraído de um PDF ou carregue múltiplos arquivos em lote para gerar HTML5 semântico e relatório WCAG 2.2 AA / eMAG 100% no navegador.</p>
+
+    <label for="doc-title">Título do documento</label>
+    <input id="doc-title" type="text" value="Edital Público" />
+
+    <label for="src">Conteúdo do documento</label>
     <textarea id="src"># Edital Público
 ## Requisitos
 - Documento com CPF
 - Comprovante de residência</textarea>
-    <button id="conv" type="button">Converter para HTML5 Semântico</button>
+
+    <div class="row">
+      <button id="conv" type="button">Converter para HTML5 Semântico</button>
+      <button id="add-batch" type="button" class="secondary">Adicionar ao Lote</button>
+    </div>
+
+    <section class="card" aria-labelledby="batch-title">
+      <h2 id="batch-title">Modo Lote (Batch) &amp; Relatório WCAG 2.2 AA / eMAG</h2>
+      <label for="batch-files">Selecionar múltiplos arquivos (.txt, .md)</label>
+      <input id="batch-files" type="file" multiple accept=".txt,.md,text/plain,text/markdown" />
+      <p id="batch-status" aria-live="polite">0 documento(s) na fila do lote.</p>
+      <div class="row">
+        <button id="exp-html" type="button" class="secondary">Exportar Relatório .html</button>
+        <button id="exp-json" type="button" class="secondary">Exportar Relatório .json</button>
+        <button id="exp-md" type="button" class="secondary">Exportar Relatório .md</button>
+      </div>
+    </section>
+
     <section id="out" aria-live="polite"></section>
+
+    <section class="card" aria-labelledby="plans-title">
+      <h2 id="plans-title">Planos B2B (Lista de Espera — Sem Cobrança Ativa)</h2>
+      <p>O núcleo individual é gratuito e 100% local. Os planos institucionais abaixo estão em pré-cadastro (sem pagamento ativo nesta versão).</p>
+      <div class="plans">
+        <article class="plan">
+          <h3>Pro</h3>
+          <p class="price">R$ 119–149/mês</p>
+          <p>Processamento em lote avançado e relatórios auditáveis WCAG 2.2 AA / eMAG para consultores e equipes.</p>
+        </article>
+        <article class="plan">
+          <h3>Institucional</h3>
+          <p class="price">R$ 349–399/mês</p>
+          <p>Licenciamento para universidades, prefeituras e órgãos públicos com modelos eMAG padronizados.</p>
+        </article>
+      </div>
+    </section>
   </main>
   <footer>Made by <a href="https://olacdev.com/" target="_blank" rel="noopener noreferrer">OlacDev</a></footer>
   <script type="module">
-    import { convertTextToSemanticHtml } from './app.js';
+    import { convertTextToSemanticHtml, buildComplianceReport } from './app.js';
+    const batchItems = [];
+
+    function updateBatchStatus() {
+      document.getElementById('batch-status').textContent = `${batchItems.length} documento(s) na fila do lote.`;
+    }
+
+    function downloadFile(name, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     document.getElementById('conv').addEventListener('click', () => {
-      const html = convertTextToSemanticHtml({ rawText: document.getElementById('src').value });
-      document.getElementById('out').innerHTML = `<div class="card"><h2>HTML5 Gerado</h2><pre>${html.replace(/</g, '&lt;')}</pre></div>`;
+      const title = document.getElementById('doc-title').value || 'Documento Acessível';
+      const html = convertTextToSemanticHtml({ title, rawText: document.getElementById('src').value });
+      const out = document.getElementById('out');
+      out.textContent = '';
+      const card = document.createElement('div');
+      card.className = 'card';
+      const h2 = document.createElement('h2');
+      h2.textContent = 'HTML5 Gerado';
+      const pre = document.createElement('pre');
+      pre.textContent = html;
+      card.appendChild(h2);
+      card.appendChild(pre);
+      out.appendChild(card);
+    });
+
+    document.getElementById('add-batch').addEventListener('click', () => {
+      const title = document.getElementById('doc-title').value || `Documento ${batchItems.length + 1}`;
+      const rawText = document.getElementById('src').value;
+      if (rawText.trim()) {
+        batchItems.push({ title, rawText });
+        updateBatchStatus();
+      }
+    });
+
+    document.getElementById('batch-files').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const f of files) {
+        const rawText = await f.text();
+        batchItems.push({ title: f.name, rawText });
+      }
+      updateBatchStatus();
+    });
+
+    function getItemsForReport() {
+      if (batchItems.length > 0) return batchItems;
+      return [{ title: document.getElementById('doc-title').value || 'Documento', rawText: document.getElementById('src').value }];
+    }
+
+    document.getElementById('exp-html').addEventListener('click', () => {
+      downloadFile('relatorio-wcag-emag.html', buildComplianceReport(getItemsForReport(), 'html'), 'text/html;charset=utf-8');
+    });
+    document.getElementById('exp-json').addEventListener('click', () => {
+      downloadFile('relatorio-wcag-emag.json', buildComplianceReport(getItemsForReport(), 'json'), 'application/json;charset=utf-8');
+    });
+    document.getElementById('exp-md').addEventListener('click', () => {
+      downloadFile('relatorio-wcag-emag.md', buildComplianceReport(getItemsForReport(), 'md'), 'text/markdown;charset=utf-8');
     });
   </script>
 </body>
